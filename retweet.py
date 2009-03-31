@@ -25,7 +25,7 @@ import datetime
 import twitter
 
 # This is a list of accounts; username first, password second
-ACCOUNTS = [("username","password")]
+ACCOUNTS = [("USERNAME","PASSWORD")]
 
 # The full path to the directory you want the sqlite file stored in.
 DB_DIR = "/full/path/to/dir/for/sqlite/"
