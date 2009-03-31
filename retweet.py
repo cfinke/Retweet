@@ -55,8 +55,9 @@ def retweet(initial_status_id=None):
     
         max_status_id = None
     
-        if len(rows) > 0:
-            max_status_id = row[0][0]
+        for row in rows:
+            max_status_id = row[0]
+            break
         
         # Create privileged twitter API
         api = twitter.Api(username=USER, password=PASS)
