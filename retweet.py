@@ -22,7 +22,7 @@ import re
 import sqlite3
 import datetime
 
-import twitter as twitterpy
+import twitter
 
 # This is a list of accounts; username first, password second
 ACCOUNTS = [("username","password")]
@@ -59,7 +59,7 @@ def retweet(initial_status_id=None):
             max_status_id = row[0][0]
         
         # Create privileged twitter API
-        api = twitterpy.Api(username=USER, password=PASS)
+        api = twitter.Api(username=USER, password=PASS)
         api.SetSource("retweetpy")
         
         # Get replies to our account
