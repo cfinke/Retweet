@@ -15,7 +15,7 @@
 """A bot that republishes Twitter messages sent to it."""
 
 __author__ = 'cfinke@gmail.com'
-__version__ = '1.1'
+__version__ = '1.2'
 
 import sys
 import re
@@ -69,12 +69,15 @@ def retweet(initial_status_id=None):
         if len(replies) > 0:
             # Strip off the leading @username
             cut_reply = re.compile(r"^@%s:?\s*" % USER, re.IGNORECASE)
-        
+            clean_reply = re.compile(r'^[^a-z0-9\s]*@', re.IGNORECASE)
+            
             for reply in replies:
-                if not reply.text.lower().startswith("@%s" % USER.lower()):
+                reply_text = clean_reply.sub("@", reply.text)
+                
+                if not reply_text.lower().startswith("@%s" % USER.lower()):
                     continue
                 
-                clean_tweet = cut_reply.sub("", reply.text).strip()
+                clean_tweet = cut_reply.sub("", reply_text).strip()
             
                 # Build the new tweet
                 new_tweet = "RT @%s %s" % (reply.user.GetScreenName(), clean_tweet)
@@ -98,7 +101,9 @@ def retweet(initial_status_id=None):
             
                 # Send it.
                 try:
-                    api.PostUpdate(new_tweet, reply.id)
+                    api.PostUpdate(new_tweet)#, reply.id)
+                    # Commenting out the reply.id now that Twitter will hide it from users that don't follow
+                    # the user that is being replied to.
 
                     cursor.execute("""INSERT INTO retweets (status_id, timestamp) VALUES ('%s', '%s')""" % (reply.id, datetime.datetime.now()))
                     connection.commit()
