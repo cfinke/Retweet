@@ -3,9 +3,9 @@ you may be able to specify run retweet.py by specifying "python2.5" instead of j
 
 == Getting Started ==
 
-1. Replace "USERNAME" and "PASSWORD" at the top of retweet.py with your account credentials. 
+1. Replace "USERNAME" and "PASSWORD" at the top of settings.py with your account credentials. 
    (You can manage multiple accounts by adding another username/password pair to the ACCOUNTS variable.) 
-2. Change the DB_DIR variable to point to the directory where you'll keep your SQLite databases.
+2. Change the DB_DIR variable in settings.py to point to the directory where you'll keep your SQLite databases.
 3. Optionally, add this line to your crontab:
 
 */2 * * * * python /full/path/to/retweet.py
@@ -19,6 +19,12 @@ The only thing it stores in the SQLite database are the status ids of the tweets
 
 If the new message is longer than 140 characters, it chops words off of the end, replacing them with "..." 
 until it's under the 140 character limit.
+
+== Banning a User ==
+
+To ban a user from being retweeted, run this command.
+
+$ python retweet.py --ban=user_to_ban --account=retweeting_account
 
 == Replacing an Existing Bot ==
 
