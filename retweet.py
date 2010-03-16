@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A bot that republishes Twitter messages sent to it."""
+"""A bot that republishes Twitter messages sent to it. Put your settings in settings.py."""
 
 __author__ = 'cfinke@gmail.com'
-__version__ = '1.2'
+__version__ = '1.3'
 
 import sys
 import re
@@ -23,34 +23,25 @@ import sqlite3
 import datetime
 
 import twitter
-
-# This is a list of accounts; username first, password second
-ACCOUNTS = [("USERNAME","PASSWORD")]
-
-# The full path to the directory you want the sqlite file stored in.
-DB_DIR = "/full/path/to/dir/for/sqlite/"
+import settings
 
 def retweet(initial_status_id=None):
-    for USER, PASS in ACCOUNTS:
-        DB_PATH = DB_DIR + "%s.sqlite"
+    DB_PATH = settings.DB_DIR + "%s.sqlite"
 
+    for USER, PASS in settings.ACCOUNTS:
         connection = sqlite3.connect(DB_PATH % USER)
         cursor = connection.cursor()
-    
-        # Create the table that will hold the tweets we've retweeted.
-        cursor.execute("""CREATE TABLE IF NOT EXISTS retweets (status_id VARCHAR(100) PRIMARY KEY, timestamp VARCHAR(255))""")
-        connection.commit()
         
         if initial_status_id is not None:
             try:
-                cursor.execute("""INSERT INTO retweets (status_id, timestamp) VALUES ('%s', '%s')""" % (initial_status_id, datetime.datetime.now()))
+                cursor.execute("""INSERT INTO retweets_2 (status_id, timestamp) VALUES ('%s', '%s')""" % (initial_status_id, datetime.datetime.now()))
                 connection.commit()
-            except Exception, e:
+            except sqlite3.IntegrityError:
                 # Already inserted
                 pass
         
         # Find the last tweet we retweeted
-        cursor.execute("""SELECT MAX(status_id) FROM retweets""")
+        cursor.execute("""SELECT MAX(status_id) FROM retweets_2""")
         rows = cursor
     
         max_status_id = None
@@ -72,46 +63,125 @@ def retweet(initial_status_id=None):
             clean_reply = re.compile(r'^[^a-z0-9\s]*@', re.IGNORECASE)
             
             for reply in replies:
-                reply_text = clean_reply.sub("@", reply.text)
+                is_banned = False
                 
-                if not reply_text.lower().startswith("@%s" % USER.lower()):
-                    continue
-                
-                clean_tweet = cut_reply.sub("", reply_text).strip()
-            
                 # Build the new tweet
-                new_tweet = "RT @%s %s" % (reply.user.GetScreenName(), clean_tweet)
+                retweeting_from = reply.user.screen_name.lower()
                 
-                # If it's over 140 chars, cut it down, adding ellipses
-                # The "in reply to" will link to the original
-                if len(new_tweet) > 140:
-                    new_tweet = new_tweet[:140]
+                # Check if this user is banned.
+                cursor.execute("""SELECT username FROM bans WHERE username='%s'""" % retweeting_from)
+                rows = cursor
                 
-                    i = 137
+                for row in rows:
+                    is_banned = True
+                    break
                 
-                    while i > 0:
-                        # Add the ellipses in a word break
-                        if new_tweet[i] == " ":
-                            new_tweet = "%s..." % new_tweet[:i]
-                            break
-                        else:
-                            new_tweet = new_tweet[:i]
+                if not is_banned:
+                    reply_text = clean_reply.sub("@", reply.text)
+                
+                    if not reply_text.lower().startswith("@%s" % USER.lower()):
+                        continue
+                
+                    clean_tweet = cut_reply.sub("", reply_text).strip()
                     
-                        i -= 1
+                    new_tweet = "RT @%s %s" % (retweeting_from, clean_tweet)
+                    
+                    # If it's over 140 chars, cut it down, adding ellipses
+                    # The "in reply to" will link to the original
+                    if len(new_tweet) > 140:
+                        new_tweet = new_tweet[:140]
+                
+                        i = 137
+                
+                        while i > 0:
+                            # Add the ellipses in a word break
+                            if new_tweet[i] == " ":
+                                new_tweet = "%s..." % new_tweet[:i]
+                                break
+                            else:
+                                new_tweet = new_tweet[:i]
+                    
+                            i -= 1
             
-                # Send it.
-                try:
-                    api.PostUpdate(new_tweet)#, reply.id)
-                    # Commenting out the reply.id now that Twitter will hide it from users that don't follow
-                    # the user that is being replied to.
+                    try:
+                        # Send it.
+                        api.PostUpdate(new_tweet)
+                        
+                        cursor.execute("""INSERT INTO retweets_2 (status_id, timestamp) VALUES ('%s', '%s')""" % (reply.id, datetime.datetime.now()))
+                        connection.commit()
+                    except Exception, e:
+                        print e
+        
+        cursor.close()
+        connection.close()
 
-                    cursor.execute("""INSERT INTO retweets (status_id, timestamp) VALUES ('%s', '%s')""" % (reply.id, datetime.datetime.now()))
-                    connection.commit()
-                except Exception, e:
-                    print e
+def ban(username, account):
+    DB_PATH = settings.DB_DIR + "%s.sqlite"
+
+    connection = sqlite3.connect(DB_PATH % account)
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("""INSERT INTO bans (username) VALUES ('%s')""" % username)
+        connection.commit()
+    except sqlite3.IntegrityError:
+        print "Already banned."
+    
+    cursor.close()
+    connection.close()
+
+def setup():
+    DB_PATH = settings.DB_DIR + "%s.sqlite"
+    
+    for USER, PASS in settings.ACCOUNTS:
+        connection = sqlite3.connect(DB_PATH % USER)
+        cursor = connection.cursor()
+        
+        cursor.execute("""SELECT tbl_name FROM sqlite_master""")
+        table_rows = cursor.fetchall()
+        
+        tables = []
+        
+        for table in table_rows:
+            tables.append(table[0])
+        
+        if "bans" not in tables:
+            cursor.execute("""CREATE TABLE bans (username TEXT PRIMARY KEY)""")
+            connection.commit()
+        
+        if "retweets_2" not in tables:
+            cursor.execute("""CREATE TABLE retweets_2 (status_id INTEGER PRIMARY KEY, timestamp TEXT)""")
+            
+            if "retweets" in tables:
+                cursor.execute("""INSERT INTO retweets_2 SELECT CAST(status_id AS INTEGER), timestamp FROM retweets""")
+        
+            connection.commit()
+            
+        if "retweets" in tables:
+            cursor.execute("""DROP TABLE retweets""")
+            connection.commit()
+        
+        cursor.close()
+        connection.close()
+
 
 if __name__ == "__main__":
+    setup()
+    
     if len(sys.argv) > 1:
-        retweet(sys.argv[1])
+        to_ban = None
+        ban_account = None
+        
+        for arg in sys.argv:
+            if arg.startswith("--ban="):
+                to_ban = arg.split("=")[1]
+            elif arg.startswith("--account="):
+                ban_account = arg.split("=")[1]
+        
+        if to_ban and ban_account:
+            ban(username=to_ban, account=ban_account)
+        else:
+            retweet(initial_status_id=sys.argv[1])
     else:
         retweet()
+    
