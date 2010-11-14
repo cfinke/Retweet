@@ -3,9 +3,9 @@ retweet.py requires at least python 2.5.  If the default version of python on yo
 Getting Started
 ===============
 
-# Replace "USERNAME" and "PASSWORD" at the top of settings.py with your account credentials. (You can manage multiple accounts by adding another username/password pair to the ACCOUNTS variable.) 
-# Change the DB_DIR variable in settings.py to point to the directory where you'll keep your SQLite databases.
-# Optionally, add this line to your crontab:
+1. Replace "USERNAME" and "PASSWORD" at the top of settings.py with your account credentials. (You can manage multiple accounts by adding another username/password pair to the ACCOUNTS variable.) 
+1. Change the DB_DIR variable in settings.py to point to the directory where you'll keep your SQLite databases.
+1. Optionally, add this line to your crontab:
 
 	*/2 * * * * python /full/path/to/retweet.py
 
