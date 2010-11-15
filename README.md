@@ -1,3 +1,16 @@
+The script republishes any tweets that start with "@username", where “username” is the value you gave the USER variable.
+
+If the new message is longer than 140 characters, it chops words off of the end, replacing them with "..." until it’s under the 140 character limit.
+
+retweet.py powers (or powered) the following Twitter accounts:
+
+* [http://twitter.com/sanmo @SanMo]
+* [http://twitter.com/swmetro @SWMetro]
+* [http://twitter.com/gtacast @GTACast]
+* [http://twitter.com/reefevents @ReefEvents]
+* [http://twitter.com/pm_retweet_de @pm_retweet_de]
+* [http://twitter.com/aroundcampus @aroundcampus]
+
 retweet.py requires at least python 2.5.  If the default version of python on your system is 2.4 or lower, you may be able to specify run retweet.py by specifying "python2.5" instead of just "python" when you run it.
 
 Getting Started
