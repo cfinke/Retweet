@@ -14,7 +14,7 @@
 
 """A bot that republishes Twitter messages sent to it. Put your settings in settings.py."""
 
-__author__ = 'cfinke@gmail.com'
+__author__ = 'chris@efinke.com'
 __version__ = '1.3'
 
 import sys
